@@ -148,7 +148,8 @@ Vi transformerar priset och bygger en regressions modell på den rensade datan.
 • jämför modellens prestation  
 
 (Visa:)
-R² träning vs test + MAE
+R² träning vs test + MAE 
+
 
 (Säg:)
 Det viktiga är att modellen fungerar lika bra på ny data som på träningsdata.
