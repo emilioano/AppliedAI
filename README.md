@@ -15,4 +15,11 @@ Parsing and cleaning of raw price strings and categorical variables
 Exploratory analysis including pairplots and median price by neighbourhood
 One-hot encoding of room type and location variables
 OLS regression model with feature importance analysis
+
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+statsmodels
 ```
