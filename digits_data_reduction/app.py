@@ -335,11 +335,11 @@ with tab4:
         col_c.metric("Total varians", f"{total_variance_3d:.1%}")
 
 with tab5:
-    st.header("UMAP — icke-linjär dimensionsreduktion")
+    st.header("UMAP — uniform manifold approximation and projection")
     
     st.markdown("""
     UMAP är en icke-linjär teknik som ofta ger tydligare klasseparation än ren PCA. 
-    Vi matar in de N första PCA-komponenterna som input (brusreducering), sedan klämmer 
+    Vi matar in de N första PCA-komponenterna som input, sedan klämmer 
     UMAP ner dem till 2D eller 3D.
     """)
     
