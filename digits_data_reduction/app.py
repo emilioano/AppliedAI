@@ -118,7 +118,7 @@ with tab2:
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.legend()
     ax.grid(True, alpha=0.3)
-    st.pyplot(fig, use_container_width=False)
+    st.pyplot(fig, width="content")
 
     # Kumulativ varians
     fig, ax = plt.subplots(figsize=(6, 3))
@@ -131,7 +131,7 @@ with tab2:
     ax.set_title('Kumulativ förklarad varians')
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
     ax.grid(True, alpha=0.3)
-    st.pyplot(fig, use_container_width=False)
+    st.pyplot(fig, width="content")
     
     # Stor metrik-rad nedanför
     col_a, col_b, col_c = st.columns(3)
@@ -223,7 +223,7 @@ with tab3:
         fig.update_traces(marker=dict(size=6, line=dict(width=0.3, color='white')))
         fig.update_layout(height=600)
         
-        st.plotly_chart(fig, use_container_width=False)
+        st.plotly_chart(fig, width="content")
         
         # Info nedanför
         total_variance = variance_ratio[x_component-1] + variance_ratio[y_component-1]
@@ -322,7 +322,7 @@ with tab4:
             )
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="content")
         
         # Info
         total_variance_3d = (variance_ratio[x_comp_3d-1] + 
@@ -335,18 +335,16 @@ with tab4:
         col_c.metric("Total varians", f"{total_variance_3d:.1%}")
 
 with tab5:
-    st.header("UMAP")
+    st.header("UMAP — icke-linjär dimensionsreduktion")
     
     st.markdown("""
     UMAP är en icke-linjär teknik som ofta ger tydligare klasseparation än ren PCA. 
     Vi matar in de N första PCA-komponenterna som input (brusreducering), sedan klämmer 
-    UMAP ner dem till 2D.
-    
-    **Prova olika hyperparametrar och se hur klustren förändras!**
+    UMAP ner dem till 2D eller 3D.
     """)
     
-    # Hyperparametrar i en ren layout
-    col1, col2, col3 = st.columns(3)
+    # === Rad 1: Antal komponenter in, och ut ===
+    col1, col2 = st.columns(2)
     
     with col1:
         n_pca_for_umap = st.slider(
@@ -356,24 +354,53 @@ with tab5:
         )
     
     with col2:
+        output_dims = st.radio(
+            "Output-dimensioner",
+            options=[2, 3],
+            horizontal=True,
+            format_func=lambda n: f"{n}D"
+        )
+    
+    # === Rad 2: De två viktigaste hyperparametrarna ===
+    col3, col4 = st.columns(2)
+    
+    with col3:
         n_neighbors = st.slider(
             "n_neighbors",
             min_value=2, max_value=100, value=15,
             help="Lågt = fokus på lokal struktur. Högt = global struktur."
         )
     
-    with col3:
+    with col4:
         min_dist = st.slider(
             "min_dist",
             min_value=0.0, max_value=1.0, value=0.1, step=0.05,
             help="Lågt = tighta kluster. Högt = mer spridning."
         )
     
-    # Visa hur mycket varians inputen fångar
+    # === Rad 3: Metric och random state ===
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        metric = st.selectbox(
+            "Avståndsmått (metric)",
+            options=["euclidean", "manhattan", "cosine", "chebyshev", "correlation"],
+            index=0,
+            help="Hur avstånd mellan punkter beräknas"
+        )
+    
+    with col6:
+        random_state = st.number_input(
+            "Random state",
+            min_value=0, max_value=9999, value=42, step=1,
+            help="Samma värde ger samma resultat. Byt för att se andra lösningar."
+        )
+    
+    # Visa input-info
     captured_for_umap = variance_ratio[:n_pca_for_umap].sum()
     st.info(f"Input till UMAP: {n_pca_for_umap} PCA-komponenter som fångar {captured_for_umap:.1%} av variansen")
     
-    # Filtrering av klasser (bonus)
+    # Filtrering av klasser
     selected_digits_umap = st.multiselect(
         "Visa siffror",
         options=list(range(10)),
@@ -382,69 +409,100 @@ with tab5:
         key="digits_umap"
     )
     
-    # Cachad UMAP-funktion — viktigt eftersom UMAP är dyrt!
+    # Cachad UMAP-funktion
     @st.cache_data
-    def compute_umap(_x_pca, n_components_input, n_neigh, min_d):
+    def compute_umap(_x_pca, n_components_input, n_out, n_neigh, min_d, metric_name, rand_state):
         x_input = _x_pca[:, :n_components_input]
         reducer = UMAP(
-            n_components=2,
+            n_components=n_out,
             n_neighbors=n_neigh,
             min_dist=min_d,
-            random_state=42
+            metric=metric_name,
+            random_state=rand_state
         )
         return reducer.fit_transform(x_input)
     
     if not selected_digits_umap:
         st.warning("Välj minst en siffra att visa.")
     else:
-        # Kör UMAP (cachad — byter parametrar? Nya beräkningar)
         with st.spinner("Kör UMAP... (kan ta några sekunder)"):
-            x_umap = compute_umap(x_pca, n_pca_for_umap, n_neighbors, min_dist)
+            x_umap = compute_umap(
+                x_pca, n_pca_for_umap, output_dims,
+                n_neighbors, min_dist, metric, random_state
+            )
         
-        # Filtrera för plottning
+        # Filtrera punkter
         mask = np.isin(y, selected_digits_umap)
         
-        df_umap = pd.DataFrame({
-            'UMAP1': x_umap[mask, 0],
-            'UMAP2': x_umap[mask, 1],
-            'Siffra': y[mask].astype(str)
-        })
+        title_str = (f'UMAP ({output_dims}D, metric={metric}, '
+                     f'n_neighbors={n_neighbors}, min_dist={min_dist})')
         
-        # Plotta
-        fig = px.scatter(
-            df_umap, x='UMAP1', y='UMAP2',
-            color='Siffra',
-            color_discrete_sequence=px.colors.qualitative.T10,
-            opacity=0.7,
-            title=f'UMAP (n_neighbors={n_neighbors}, min_dist={min_dist})'
-        )
-        fig.update_traces(marker=dict(size=5, line=dict(width=0.3, color='white')))
-        fig.update_layout(height=600)
+        if output_dims == 2:
+            df_umap = pd.DataFrame({
+                'UMAP1': x_umap[mask, 0],
+                'UMAP2': x_umap[mask, 1],
+                'Siffra': y[mask].astype(str)
+            })
+            
+            fig = px.scatter(
+                df_umap, x='UMAP1', y='UMAP2',
+                color='Siffra',
+                color_discrete_sequence=px.colors.qualitative.T10,
+                opacity=0.7,
+                title=title_str
+            )
+            fig.update_traces(marker=dict(size=5, line=dict(width=0.3, color='white')))
+            fig.update_layout(height=600)
         
-        st.plotly_chart(fig, use_container_width=True)
+        else:  # 3D
+            df_umap = pd.DataFrame({
+                'UMAP1': x_umap[mask, 0],
+                'UMAP2': x_umap[mask, 1],
+                'UMAP3': x_umap[mask, 2],
+                'Siffra': y[mask].astype(str)
+            })
+            
+            fig = px.scatter_3d(
+                df_umap, x='UMAP1', y='UMAP2', z='UMAP3',
+                color='Siffra',
+                color_discrete_sequence=px.colors.qualitative.T10,
+                opacity=0.7,
+                title=title_str
+            )
+            fig.update_traces(marker=dict(size=3))
+            fig.update_layout(height=700)
+        
+        st.plotly_chart(fig, width="stretch")
         
         # Info
-        col_a, col_b = st.columns(2)
+        col_a, col_b, col_c = st.columns(3)
         col_a.metric("Antal punkter", mask.sum())
         col_b.metric("PCA-varians som input", f"{captured_for_umap:.1%}")
+        col_c.metric("UMAP output", f"{output_dims}D")
         
         # Hjälpsam förklaring
-        with st.expander("Vad betyder parametrarna?"):
+        with st.expander("Vad gör alla parametrar?"):
             st.markdown("""
-            **n_neighbors** styr hur UMAP ser på omgivningen:
-            - **Lågt värde (2-10):** UMAP fokuserar på varje punkts närmsta grannar. 
-              Resultatet blir många små, tighta kluster — bra för att hitta finstruktur.
-            - **Högt värde (30-100):** UMAP tittar på större grannskap. 
-              Global struktur bevaras bättre, men små kluster kan slås ihop.
+            **n_neighbors** — hur stor omgivning UMAP tittar på för varje punkt
+            - Lågt (2-10): lokala detaljer, tighta små kluster
+            - Högt (30-100): global struktur, bredare överblick
             
-            **min_dist** styr hur nära punkter får ligga varandra i utkarta:
-            - **Lågt värde (0.0-0.1):** Punkter packas tight. Kluster blir tydligt 
-              separerade men svårare att se enskilda punkter inom dem.
-            - **Högt värde (0.5-1.0):** Punkter sprids ut mer jämnt. Mjukare övergångar, 
-              men kluster kan flyta ihop.
+            **min_dist** — minsta avstånd mellan punkter i output
+            - Lågt (0.0-0.1): tightare kluster, tydligare separation
+            - Högt (0.5-1.0): mer spridning, mjukare övergångar
             
-            **Antal PCA-komponenter som input:**
-            - Färre = mindre brus men mindre info
-            - Fler = mer info men också mer brus
-            - ~20 brukar vara en bra balans för Digits
+            **metric** — hur UMAP mäter avstånd mellan datapunkter
+            - `euclidean` — raka avståndet (standard). Fungerar bra för de flesta kontinuerliga data.
+            - `manhattan` — summa av absolut skillnad per dimension ("taxavstånd"). Mindre känslig för outliers.
+            - `cosine` — vinkel mellan vektorer, ignorerar magnitud. Bra för textdata och bilder där riktning spelar större roll än storlek.
+            - `chebyshev` — max-avstånd i någon dimension. Fokuserar på den värsta skillnaden.
+            - `correlation` — baseras på korrelation mellan vektorer. Bra när datan har mönster snarare än absoluta värden.
+            
+            **random_state** — slumpfröet
+            - UMAP har slumpmässiga inslag. Samma random_state → samma resultat varje gång.
+            - Prova olika värden för att se hur stabil strukturen är. Om klustren är konsistenta över olika random states är de "riktiga".
+            
+            **n_components (output-dimensioner)** — antal dimensioner i resultatet
+            - 2D för klassisk visualisering
+            - 3D för rotation och mer separation, men svårare att fånga på en statisk bild
             """)
