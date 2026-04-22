@@ -23,3 +23,11 @@ seaborn
 scikit-learn
 statsmodels
 ```
+
+### Group project 2 - Data reduction - Digits dataset
+```
+digits_data_reduction
+
+To run the streamlit app, please run
+streamlit run app.py
+```
