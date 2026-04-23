@@ -1,2 +1,13 @@
 *checkpoints/
 */checkpoints/
+# Mac skräp
+
+.DS_Store
+
+# mappar du inte vill ha i repo
+
+visuals/
+
+# Data (lokal)
+
+data/
