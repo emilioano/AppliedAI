@@ -1,5 +1,6 @@
 *checkpoints/
 */checkpoints/
+<<<<<<< HEAD
 # Mac skräp
 
 .DS_Store
@@ -11,3 +12,8 @@ visuals/
 # Data (lokal)
 
 data/
+=======
+/visuals/
+visuals/
+/visuals
+>>>>>>> main
