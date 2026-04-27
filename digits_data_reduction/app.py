@@ -349,7 +349,7 @@ with tab5:
     with col1:
         n_pca_for_umap = st.slider(
             "Antal PCA-komponenter som input",
-            min_value=2, max_value=50, value=20,
+            min_value=2, max_value=64, value=20,
             help="Fler komponenter = mer info men mer brus"
         )
     
