@@ -34,24 +34,73 @@ top10 = artifacts['top10_customers']
 # ---------- Prediktionsfunktion ----------
 def predict_churn(customer_dict):
     """Tar en dict med kund-attribut, returnerar churn-sannolikhet."""
-    df_kund = pd.DataFrame([customer_dict])
 
-    # Dummy-koda
-    df_kund_encoded = pd.get_dummies(df_kund, drop_first=True, dtype=int)
+    # Bygg en tom rad med alla feature_columns satta till 0
+    row = {col: 0 for col in feature_columns}
 
-    # Lägg till saknade kolumner
-    for col in feature_columns:
-        if col not in df_kund_encoded.columns:
-            df_kund_encoded[col] = 0
+    # Sätt numeriska värden direkt
+    row['tenure'] = customer_dict['tenure']
+    row['MonthlyCharges'] = customer_dict['MonthlyCharges']
+    row['TotalCharges'] = customer_dict['TotalCharges']
+    row['SeniorCitizen'] = customer_dict['SeniorCitizen']
 
-    # Sortera kolumner i rätt ordning
-    df_kund_encoded = df_kund_encoded[feature_columns]
+    # Sätt dummies manuellt baserat på vad användaren valde
+    # OBS: vi måste matcha exakt namnet på dummy-kolumnerna
+    if customer_dict['gender'] == 'Male':
+        row['gender_Male'] = 1
+    if customer_dict['Partner'] == 'Yes':
+        row['Partner_Yes'] = 1
+    if customer_dict['Dependents'] == 'Yes':
+        row['Dependents_Yes'] = 1
+    if customer_dict['PhoneService'] == 'Yes':
+        row['PhoneService_Yes'] = 1
+    if customer_dict['MultipleLines'] == 'Yes':
+        row['MultipleLines_Yes'] = 1
 
-    # Skala numeriska kolumner
-    df_kund_scaled = df_kund_encoded.copy()
-    df_kund_scaled[numeric_cols] = scaler.transform(df_kund_encoded[numeric_cols])
+    # InternetService – referens är DSL
+    if customer_dict['InternetService'] == 'Fiber optic':
+        row['InternetService_Fiber optic'] = 1
+    elif customer_dict['InternetService'] == 'No':
+        row['InternetService_No'] = 1
 
-    # Lägg till const för statsmodels
+    if customer_dict['OnlineSecurity'] == 'Yes':
+        row['OnlineSecurity_Yes'] = 1
+    if customer_dict['OnlineBackup'] == 'Yes':
+        row['OnlineBackup_Yes'] = 1
+    if customer_dict['DeviceProtection'] == 'Yes':
+        row['DeviceProtection_Yes'] = 1
+    if customer_dict['TechSupport'] == 'Yes':
+        row['TechSupport_Yes'] = 1
+    if customer_dict['StreamingTV'] == 'Yes':
+        row['StreamingTV_Yes'] = 1
+    if customer_dict['StreamingMovies'] == 'Yes':
+        row['StreamingMovies_Yes'] = 1
+
+    # Contract – referens är Month-to-month
+    if customer_dict['Contract'] == 'One year':
+        row['Contract_One year'] = 1
+    elif customer_dict['Contract'] == 'Two year':
+        row['Contract_Two year'] = 1
+
+    if customer_dict['PaperlessBilling'] == 'Yes':
+        row['PaperlessBilling_Yes'] = 1
+
+    # PaymentMethod – referens är Bank transfer (automatic)
+    if customer_dict['PaymentMethod'] == 'Credit card (automatic)':
+        row['PaymentMethod_Credit card (automatic)'] = 1
+    elif customer_dict['PaymentMethod'] == 'Electronic check':
+        row['PaymentMethod_Electronic check'] = 1
+    elif customer_dict['PaymentMethod'] == 'Mailed check':
+        row['PaymentMethod_Mailed check'] = 1
+
+    # Konvertera till DataFrame
+    df_kund = pd.DataFrame([row])[feature_columns]
+
+    # Skala numeriska
+    df_kund_scaled = df_kund.copy()
+    df_kund_scaled[numeric_cols] = scaler.transform(df_kund[numeric_cols])
+
+    # Lägg till const
     df_kund_scaled.insert(0, 'const', 1.0)
 
     # Predicera
@@ -264,6 +313,12 @@ customer = {
     'PaperlessBilling': paperless,
     'PaymentMethod': payment
 }
+
+# DEBUG: visa vad som faktiskt skickas till modellen
+st.write("🔧 Debug:", {
+    'InternetService': customer['InternetService'],
+    'MonthlyCharges': customer['MonthlyCharges']
+})
 
 prob = predict_churn(customer)
 risk_text, risk_color = klassificera_risk(prob)
