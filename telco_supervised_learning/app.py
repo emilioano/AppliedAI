@@ -3,6 +3,9 @@ Telco Churn Prediction Demo
 ============================
 Interaktiv app för att visa logistisk regression-modellens prediktioner.
 Körs med: streamlit run app.py
+
+OBS, kör Jupyter Notebook-filen först så att den generar den nödvändiga .pkl-filen för modellen!
+
 """
 
 import streamlit as st
