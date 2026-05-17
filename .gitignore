@@ -5,3 +5,5 @@ visuals/
 /visuals
 flight_delays/
 .DS_Store
+data/
+.DS_Store
