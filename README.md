@@ -58,6 +58,8 @@ Python, NumPy, scikit-learn, UMAP, Plotly, Matplotlib, Seaborn, Streamlit.
 
 ### Group project 3 — Food Delivery: Unsupervised Learning
 ```
+food_delivery_unsupervised_learning
+
 Customer and restaurant segmentation on a food delivery order history dataset (21,321 orders, 6 restaurants) using unsupervised methods.
 
 Goal
@@ -96,6 +98,8 @@ Python, pandas, NumPy, scikit-learn, Matplotlib, Seaborn, Plotly.
 
 ### Group project 4 — Telco Customer Churn: Supervised Learning
 ```
+telco_supervised_learning
+
 Predicting customer churn on the Telco Customer Churn dataset using logistic regression and KNN, applied with the exact methodology from the course material.
 
 Goal
@@ -131,6 +135,8 @@ Python, pandas, scikit-learn, statsmodels, Matplotlib, Seaborn.
 
 ### Group project 5 — Steam: Predicting Game Reception with Tree-Based Models
 ```
+steam_devision_trees
+
 Can Steam metadata alone predict whether a game will be positively received by users? We tackle this with decision trees, Random Forest, and XGBoost on a dataset of 90,000+ Steam titles.
 
 Goal
