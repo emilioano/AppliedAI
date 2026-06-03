@@ -8,3 +8,5 @@ flight_delays/
 data/
 mustasch_classifier/models/
 mustasch_classifier/assets/*.mp4
+.venv311/
+.venv_tf_stable/
