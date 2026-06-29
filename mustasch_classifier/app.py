@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 from facenet_pytorch import MTCNN
 
-mtcnn = MTCNN(image_size=128, margin=40, post_process=False)
+mtcnn = MTCNN(image_size=178, margin=40, post_process=False)
 
 # --------------------------------------------------
 # Page config
@@ -25,10 +25,10 @@ st.set_page_config(
 @st.cache_resource
 def load_models():
     mustache_model = tf.keras.models.load_model(
-        "models/mustache_detector2.keras"
+        "models/mustache_detector_3.keras"
     )
     epic_model = tf.keras.models.load_model(
-        "models/epic_detector.keras"
+        "models/epic_detector_pinterest.keras"
     )
     return mustache_model, epic_model
 
@@ -39,13 +39,13 @@ mustache_model, epic_model = load_models()
 # Constants
 # --------------------------------------------------
 
-IMG_SIZE = (128, 128)
+IMG_SIZE = (178, 178)
 
 # --------------------------------------------------
 # Header
 # --------------------------------------------------
 
-st.image("assets/logo.png", use_container_width=True)
+st.image("assets/abbe/logo.png", width=150)
 
 st.caption(
     "Official Facial Hair Assessment "
@@ -65,6 +65,21 @@ uploaded_file = st.file_uploader(
 # Helpers
 # --------------------------------------------------
 
+def thin_prob_to_epic_score(thin_prob):
+    thin_prob = max(float(thin_prob), 1e-15)
+
+    x = np.log10(thin_prob)
+
+    # Kalibrerat mot referensbilder — generösare mot medelsäkra äkta mustascher,
+    # håller fortfarande tydlig separation mot svaga (thin_prob > 0.6 stannar under 35)
+    center = np.log10(0.1)
+
+    steepness = 1.2
+
+    score = 1 / (1 + np.exp(steepness * (x - center)))
+
+    return float(np.clip(score, 0.0, 1.0))
+
 def prepare_image(image):
     image = image.convert("RGB")
 
@@ -82,7 +97,7 @@ def prepare_image(image):
 
 
 def classify_epicness(score):
-    if score >= 0.85:
+    if score >= 0.95:
         return (
             "🏆 LEGENDARY STACHE",
             "The International Mustache Authority is impressed.",
@@ -104,25 +119,23 @@ def classify_epicness(score):
         return (
             "🌱 Apprentice Stache",
             "Mustache growth is currently in beta testing.",
-            "assets/not_epic.mp4"
+            "assets/medium.mp4"
         )
     else:
         return (
             "🪶 Fjunig Mustache",
             "The mustache exists mostly as a theoretical concept.",
-            "assets/no.mp4"
+            "assets/fjunig.mp4"
         )
 
 
 def animate_scanner():
     labels = [
         "🔬 Scanning upper lip region...",
-        "📡 Calibrating follicle sensors...",
         "🧬 Analyzing hair density matrix...",
         "⚗️  Cross-referencing mustache database...",
         "🏛️  Consulting the Authority archives...",
         "📊 Computing power rating...",
-        "✍️  Drafting official verdict...",
     ]
 
     progress_bar = st.progress(0)
@@ -176,7 +189,7 @@ if uploaded_file is not None:
 
         st.write("mustache_prob:", mustache_prob)
 
-        if mustache_prob < 0.2:
+        if mustache_prob < 0.4:
             st.error("❌ NO CERTIFIED MUSTACHE DETECTED")
             st.write(
                 "Verdict: Upper lip currently operating "
@@ -189,10 +202,8 @@ if uploaded_file is not None:
             thin_prob = float(
                 epic_model.predict(img_array, verbose=0)[0][0]
             )
-            if mustache_prob > 0.8:
-                epic_score = min(1.0, (1 - thin_prob) * 1.1)
-            else:
-                epic_score = 1 - thin_prob
+
+            epic_score = thin_prob_to_epic_score(thin_prob)
 
             st.write("thin_prob:", thin_prob)
             st.write("epic_score:", epic_score)
@@ -216,7 +227,7 @@ if uploaded_file is not None:
             st.subheader(title)
             st.write(description)
 
-            if epic_score >= 0.85:
+            if epic_score >= 0.95:
                 st.balloons()
 
             st.divider()
