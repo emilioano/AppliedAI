@@ -28,7 +28,7 @@ def load_models():
         "models/mustache_detector_3.keras"
     )
     epic_model = tf.keras.models.load_model(
-        "models/epic_detector_pinterest.keras"
+        "models/epic_detector_3class_3.keras"
     )
     return mustache_model, epic_model
 
